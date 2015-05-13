@@ -24,13 +24,11 @@ from config import *
 from oneconnect import *
 import time
 
-ONE_WRAPPER_LOG="/tmp/one.wrapper"
-
 try:
 	logging.basicConfig(level=logging.DEBUG,
 		format='%(asctime)s %(levelname)-8s %(message)s',
 		datefmt='%a, %d %b %Y %H:%M:%S',
-		filename=ONE_WRAPPER_LOG,
+		filename=CLUES_ONE_LOGFILE,
 		filemode='a')
 except:
 	logging.basicConfig(level=logging.DEBUG, filename=None)
@@ -54,6 +52,7 @@ else:
 		(result, vm, txt) = one.vm_get(maq_id)
 		if (result == 0):
 			procs = max(vm.TEMPLATE.CPU, vm.TEMPLATE.VCPU)
+			procs = procs * 100
 			try:
 				requirements = vm.TEMPLATE.REQUIREMENTS
 				# when a value is not defined for a VM, the objects translate it into 0

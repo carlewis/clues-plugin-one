@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 PLUGIN_PATH=/opt/clues/plugins/one
-ONEHOST=$ONE_LOCATION/bin/onehost
+ONEHOST=/usr/bin/onehost
 ONE_AUTH=${PLUGIN_PATH}/one_auth
 
 if [ $# -eq 1 ]; then

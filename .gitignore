@@ -1,0 +1,3 @@
+*.pyc
+one.nodestate.db
+one_auth

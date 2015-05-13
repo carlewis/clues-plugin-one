@@ -17,20 +17,29 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
+CLUES_PATH = '/opt/clues'
+
+# Logfile for the one plugin and wrapper
+CLUES_ONE_LOGFILE = CLUES_PATH + '/log/clues.one.log'
+
 # Contact string for the XML-RPC CLUES interface
-GREEN_XML_RPC="http://localhost:8000/RPC2"
+GREEN_XML_RPC = "http://localhost:8000/RPC2"
 
 # Name of this plugin whithin CLUES environment
-ONE_PLUGIN_NAME="one"
+ONE_PLUGIN_NAME = "one"
 
 # OpenNebula credentials (it needs permission for holding and releasing machines)
-ONE_AUTH_FILENAME="/usr/local/clues/plugins/one/one_auth"
+ONE_AUTH_FILENAME = CLUES_PATH + "/plugins/one/one_auth"
 
 # Contact string for the XML-RPC ONE interface
-ONE_XML_RPC="http://localhost:2633/RPC2"
-
-# Log file for the wrapper
-ONE_WRAPPER_LOG="/usr/local/clues/log/one.wrapper.log"
+ONE_XML_RPC = "http://localhost:2633/RPC2"
 
 # Database file that will store the state of the ONE hosts
-ONE_HOST_STATUS_DB = "/usr/local/clues/plugins/one/one.nodestate.db"
+ONE_HOST_STATUS_DB = CLUES_PATH + "/plugins/one/one.nodestate.db"
+
+try: 
+  import sys
+  sys.path.append(CLUES_PATH + '/../')
+  from clues.local_config import *
+except ImportError, e:
+  pass

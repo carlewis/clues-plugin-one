@@ -42,8 +42,8 @@ def build_machine_props(auth_string = None):
 	hosts = {}
 	if result == 0:
 		for host in host_pool.HOST:
-			host.CPUs = host.TEMPLATE.TOTALCPU/100
-			host.MAXCPUs = host.CPUs
+			host.MAXCPUs = host.HOST_SHARE.MAX_CPU
+			host.CPUs = host.MAXCPUs - host.HOST_SHARE.CPU_USAGE 
 			hosts[host.NAME] = host
 
 		(result, machines, str_machines) = one.get_machine_list()
@@ -103,7 +103,7 @@ def save_node_state(node_state):
 
 
 if __name__ == '__main__':
-	logging.basicConfig(filename=None, level=logging.ERROR)
+	logging.basicConfig(filename=CLUES_ONE_LOGFILE, level=logging.ERROR)
 	hosts = build_machine_props()
 	
 	if (hosts is None):
