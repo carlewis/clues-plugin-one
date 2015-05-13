@@ -1,0 +1,4 @@
+CLUES SGE 0.88 (released 2012-11-30)
+
+    * Consider the field REQUIREMENTS in the template of the VM
+    * Inform CLUES daemon about the ONE specific features

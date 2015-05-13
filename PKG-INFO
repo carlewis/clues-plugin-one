@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: CLUES-ONE
+Version: 0.88
+Summary: ONE 3 Connector for Cluster Energy Saving System (CLUES)
+Home-page: http://www.grycap.upv.es/clues
+Author: GRyCAP - Universitat Politecnica de Valencia
+Author-email: clues@upv.es
+License: GPL version 3, http://www.gnu.org/licenses/gpl-3.0.txt
+Description: CLUES is an energy management system for HPC clusters and Cloud infrastructures whose main function is to power off the working nodes of computer clusters while they are not being used, and power them on again when they are needed. It is integrated with the management middleware of the cluster by using a set of different "middleware connectors". This is the connector for the Open Nebula Cloud Management System version 3
+Platform: any

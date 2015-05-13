@@ -1,0 +1,141 @@
+#!/usr/bin/python
+#
+# CLUES ONE Connector - ONE Connector for Cluster Energy Saving System
+# Copyright (C) 2011 - GRyCAP - Universitat Politecnica de Valencia
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# 
+import sys
+import logging
+from oneconnect import ONEConnect, HOST, VM
+from config import *
+
+try:
+	import sqlite3 as sqlite
+	sqlite_available=True
+except:
+       	sqlite_available=False
+
+if not sqlite_available:
+	try:
+		import sqlite
+		sqlite_available=True
+	except:
+		sqlite_available=False
+
+def build_machine_props(auth_string = None):
+
+	one = ONEConnect(ONE_XML_RPC, auth_string)
+
+	(result, host_pool, one_string) = one.get_hosts()
+	hosts = {}
+	if result == 0:
+		for host in host_pool.HOST:
+			host.CPUs = host.TEMPLATE.TOTALCPU/100
+			host.MAXCPUs = host.CPUs
+			hosts[host.NAME] = host
+
+		(result, machines, str_machines) = one.get_machine_list()
+
+		allocated_hosts = []
+		if result == 0:
+			for maq in machines.VM:
+				if (maq.STATE not in [ VM.STATE_FAILED, VM.STATE_DONE ]):
+					CPUs = max(maq.TEMPLATE.CPU, maq.TEMPLATE.VCPU)
+					if (maq.HISTORY_RECORDS is not None):
+						if (maq.HISTORY_RECORDS.HOSTNAME) in hosts:
+							hosts[maq.HISTORY_RECORDS.HOSTNAME].CPUs = hosts[maq.HISTORY_RECORDS.HOSTNAME].CPUs - CPUs
+						else:
+							logging.warning("vm assigned to a non existing or disabled host")
+		else:
+			logging.warning("could not retrieve de vm list")
+	else:
+		logging.warning("could not retrieve the hosts list")
+
+	ret_hosts = [v for k,v in hosts.items()]
+	return ret_hosts
+
+def retrieve_node_state():
+	node_state = {}
+	try:
+		connection = sqlite.connect(ONE_HOST_STATUS_DB)
+		cursor = connection.cursor()
+		cursor.execute('''select name from sqlite_master where type="table" and name="node_states"''')
+		if (len(cursor.fetchall()) == 0):
+			cursor.execute('''create table "node_states" ("hostname" TEXT PRIMARY KEY, "state" TEXT)''')
+			connection.commit()
+
+		cursor.execute('''select * from node_states''')
+
+		for res in cursor.fetchall():
+			node_state[res[0]] = res[1]
+		connection.close()
+	except Exception, e:
+		pass
+	return node_state
+
+def save_node_state(node_state):
+	try:
+		connection = sqlite.connect(ONE_HOST_STATUS_DB)
+	except:
+		return
+	cursor = connection.cursor()
+	for node, state in node_state.items():
+		try:
+			cursor.execute('''insert into node_states (hostname, state) values ("''' + node + '''", "''' + state + '''")''')
+		except sqlite.IntegrityError:
+			cursor.execute('''update node_states set state = "''' + state + '''" where hostname = "''' + node + '''"''')
+		except Exception, e:
+			pass
+	connection.commit()
+	connection.close()
+
+
+if __name__ == '__main__':
+	logging.basicConfig(filename=None, level=logging.ERROR)
+	hosts = build_machine_props()
+	
+	if (hosts is None):
+		sys.exit(-1)
+	else:
+		if sqlite_available:
+			node_state = retrieve_node_state()
+			for host in hosts:
+				req_vars = "NAME=\"%s\";TOTALCPU=%s;TOTALMEMORY=%s;FREEMEMORY=%s;FREECPU=%s;USEDMEMORY=%s;USEDCPU=%s;HYPERVISOR=\"%s\";RUNNING_VMS=%s" % (host.NAME, host.TEMPLATE.TOTALCPU, host.TEMPLATE.TOTALMEMORY, host.TEMPLATE.FREEMEMORY, host.TEMPLATE.FREECPU, host.TEMPLATE.USEDMEMORY, host.TEMPLATE.USEDCPU, host.TEMPLATE.HYPERVISOR, host.HOST_SHARE.RUNNING_VMS)
+				if (host.STATE in [ HOST.STATE_MONITORED ]):
+					if (host.CPUs == 0):
+						state="busy"
+					else:
+						state="free"
+				elif (host.STATE in [ HOST.STATE_MONITORING ]) and host.NAME in node_state:
+					state = node_state[ host.NAME ]
+				else:
+					state="down"
+				node_state[ host.NAME ] = state
+				print "%s;%s;free_slots=%d;total_slots=%d;%s" % (host.NAME, state, host.CPUs, host.MAXCPUs, req_vars)
+			save_node_state(node_state)
+		else:
+			for host in hosts:
+				req_vars = "NAME=\"%s\";TOTALCPU=%s;TOTALMEMORY=%s;FREEMEMORY=%s;FREECPU=%s;USEDMEMORY=%s;USEDCPU=%s;HYPERVISOR=\"%s\";RUNNING_VMS=%s" % (host.NAME, host.TEMPLATE.TOTALCPU, host.TEMPLATE.TOTALMEMORY, host.TEMPLATE.FREEMEMORY, host.TEMPLATE.FREECPU, host.TEMPLATE.USEDMEMORY, host.TEMPLATE.USEDCPU, host.TEMPLATE.HYPERVISOR, host.HOST_SHARE.RUNNING_VMS)
+				if (host.STATE in [ HOST.STATE_MONITORED ]):
+					if (host.CPUs == 0):
+						state="busy"
+					else:
+						state="free"
+				else:
+					state="down"
+				print "%s;%s;free_slots=%d;total_slots=%d;%s" % (host.NAME, state, host.CPUs, host.MAXCPUs, req_vars)
+		sys.exit(0)
+
+# http://opennebula.org/documentation:rel3.6:template#requirement_expression_syntax
